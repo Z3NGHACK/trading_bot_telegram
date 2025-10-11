@@ -27,6 +27,7 @@ export class MessageFormatter {
 
 Pair: #${analysis.symbol}/USDT
 Position: Scalp ${analysis.signal_type} ${emoji}
+Position: Scalp ${analysis.signal} ${emoji}
 Leverage: Cross ${config.trading.leverageDefault}x
 
 💰 Entry Zone: $${entryMin} - $${entryMax}

@@ -23,12 +23,19 @@ export class SignalGenerator {
       
       const analysis = await mlClient.analyzeSymbol(symbol);
       
-      if (!analysis || !analysis.signal_type) {
+      // ML Engine returns "signal", not "signal_type"
+      if (!analysis || !analysis.signal) {
         console.log(`   No signal for ${symbol}`);
         return;
       }
 
-      console.log(`   ✅ ${analysis.signal_type} signal - Confidence: ${analysis.confidence}%`);
+      // Check confidence threshold
+      if (analysis.confidence < config.trading.minConfidence) {
+        console.log(`   ⚪ ${symbol} confidence ${analysis.confidence}% < ${config.trading.minConfidence}% threshold`);
+        return;
+      }
+
+      console.log(`   ✅ ${analysis.signal} signal - Confidence: ${analysis.confidence}%`);
 
       // Check if signal already exists
       const existing = await Signal.findOne({
@@ -43,11 +50,15 @@ export class SignalGenerator {
       }
 
       // Create signal
-      const signal = await this.createSignal(analysis);
+      const signal = await this.createSignal(analysis, symbol);
+
+      console.log(`   💾 Signal saved to MongoDB`);
 
       // Send Telegram notification
-      const message = messageFormatter.formatNewSignal(analysis);
+      const message = messageFormatter.formatNewSignal(analysis, symbol);
       await telegramService.sendMessage(message);
+
+      console.log(`   📱 Telegram message sent`);
 
       await Signal.findByIdAndUpdate(signal._id, { telegramSent: true });
 
@@ -56,14 +67,14 @@ export class SignalGenerator {
     }
   }
 
-  async createSignal(analysis) {
+  async createSignal(analysis, symbol) {
     const currentPrice = analysis.indicators.price;
-    const targets = messageFormatter.calculateTargets(currentPrice, analysis.signal_type);
-    const stopLoss = messageFormatter.calculateStopLoss(currentPrice, analysis.signal_type);
+    const targets = messageFormatter.calculateTargets(currentPrice, analysis.signal);
+    const stopLoss = messageFormatter.calculateStopLoss(currentPrice, analysis.signal);
 
     const signal = new Signal({
-      pair: `${analysis.symbol}USDT`,
-      type: analysis.signal_type,
+      pair: `${symbol}USDT`,
+      type: analysis.signal,  // Use "signal" from ML Engine
       leverage: config.trading.leverageDefault,
       entry: {
         min: currentPrice * 0.98,
