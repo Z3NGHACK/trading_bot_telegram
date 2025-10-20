@@ -1,0 +1,50 @@
+name: Crypto Data Collector
+
+on:
+  schedule:
+    # Runs every 5 minutes (GitHub Actions minimum)
+    - cron: '*/5 * * * *'
+  
+  # Allow manual trigger
+  workflow_dispatch:
+
+jobs:
+  collect-data:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Collect market data
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          TOKENS: 'BTC,ETH,SOL,BNB,ADA'
+          COLLECTION_INTERVAL: 60000
+          NODE_ENV: production
+        run: |
+          node -e "
+          (async () => {
+            const { connectDatabase } = await import('./src/config/database.js');
+            await connectDatabase();
+            const { collectMarketData } = await import('./src/jobs/collectJob.js');
+            await collectMarketData();
+            process.exit(0);
+          })().catch(err => {
+            console.error('Fatal error:', err);
+            process.exit(1);
+          });
+          "
+      
+      - name: Log completion
+        if: always()
+        run: echo "Data collection completed at $(date)"

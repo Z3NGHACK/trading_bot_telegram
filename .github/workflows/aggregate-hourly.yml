@@ -1,0 +1,42 @@
+name: Aggregate Hourly Data
+
+on:
+  schedule:
+    # Runs at minute 5 of every hour
+    - cron: '5 * * * *'
+  workflow_dispatch:
+
+jobs:
+  aggregate:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run hourly aggregation
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          NODE_ENV: production
+        run: |
+          node -e "
+          (async () => {
+            const { connectDatabase } = await import('./src/config/database.js');
+            await connectDatabase();
+            const { dataAggregator } = await import('./src/services/dataAggregator.js');
+            await dataAggregator.aggregateToHourly();
+            process.exit(0);
+          })().catch(err => {
+            console.error('Fatal error:', err);
+            process.exit(1);
+          });
+          "
