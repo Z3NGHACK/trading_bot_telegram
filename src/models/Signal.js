@@ -5,7 +5,7 @@ import mongoose from 'mongoose';
 
 const signalSchema = new mongoose.Schema({
   pair: { type: String, required: true },
-  type: { type: String, enum: ['LONG', 'SHORT'], required: true },
+  type: { type: String, enum: ['LONG', 'SHORT', 'NEUTRAL'], required: true },
   leverage: { type: Number, required: true },
   entry: { min: Number, max: Number },
   targets: [{ price: Number, percent: Number }],

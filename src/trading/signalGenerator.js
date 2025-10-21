@@ -24,14 +24,20 @@ export class SignalGenerator {
       const analysis = await mlClient.analyzeSymbol(symbol);
       
       // ML Engine returns "signal", not "signal_type"
-      if (!analysis || !analysis.signal) {
-        console.log(`   No signal for ${symbol}`);
-        return;
+      if (!analysis || !analysis.signal || analysis.signal === 'NEUTRAL') {
+        console.log(`   ⚪ ${symbol}: ${analysis?.signal || 'No signal'} - Confidence: ${analysis?.confidence || 0}%`);
+        return; // ✅ Skip NEUTRAL signals, don't try to save them
       }
-
       // Check confidence threshold
-      if (analysis.confidence < config.trading.minConfidence) {
-        console.log(`   ⚪ ${symbol} confidence ${analysis.confidence}% < ${config.trading.minConfidence}% threshold`);
+      // if (analysis.confidence < config.trading.minConfidence) {
+      //   console.log(`   ⚪ ${symbol} confidence ${analysis.confidence}% < ${config.trading.minConfidence}% threshold`);
+      //   return;
+      // }
+
+      // console.log(`   ✅ ${analysis.signal} signal - Confidence: ${analysis.confidence}%`);
+
+      if (analysis.confidence < 70) {
+        console.log(`   ⚪ ${symbol} confidence ${analysis.confidence}% < 70% threshold`);
         return;
       }
 

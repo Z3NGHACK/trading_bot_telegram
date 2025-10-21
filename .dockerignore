@@ -1,0 +1,11 @@
+# ============================================
+# FILE: trading-bot/.dockerignore
+# ============================================
+node_modules
+npm-debug.log
+.env
+.git
+.gitignore
+README.md
+.DS_Store
+*.log
